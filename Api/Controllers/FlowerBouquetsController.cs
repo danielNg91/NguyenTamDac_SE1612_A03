@@ -37,16 +37,9 @@ public class FlowerBouquetsController : BaseController
     public async Task<IActionResult> CreateFlowerBouquet([FromBody] CreateFlowerBouquet req)
     {
         FlowerBouquet entity = Mapper.Map(req, new FlowerBouquet());
-        entity.FlowerBouquetId = await GetId();
         await ValidateNavigations(entity);
         await _flowerRepository.CreateAsync(entity);
         return StatusCode(StatusCodes.Status201Created);
-    }
-
-    private async Task<int> GetId()
-    {
-        var flower = (await _flowerRepository.ToListAsync()).OrderByDescending(u => u.FlowerBouquetId).FirstOrDefault();
-        return flower == null ? 1 : (flower.FlowerBouquetId + 1);
     }
 
     [HttpGet("{id}")]

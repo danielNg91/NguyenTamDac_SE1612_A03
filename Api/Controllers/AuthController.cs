@@ -4,6 +4,7 @@ using Application.Exceptions;
 using BusinessObjects;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
@@ -37,11 +38,21 @@ public class AuthController : BaseController {
             return Ok(ToLoginResponse(admin, adminToken));
         }
 
-        var user = await _userRepository.FoundOrThrow(
-            u => u.Email.Equals(credentials.Email) && u.Password.Equals(credentials.Password),
-            new BadRequestException("User not exist"));
+        var user = await ValidateNormalUser(credentials);
         var userToken = GenerateJwtToken(user, PolicyName.CUSTOMER);
         return Ok(ToLoginResponse(user, userToken));
+    }
+
+    private async Task<AspNetUser> ValidateNormalUser(LoginRequest credentials) {
+        var user = await _userRepository.FoundOrThrow(
+            u => u.Email.Equals(credentials.Email),
+            new BadRequestException("User not exist")
+        );
+        var passwordHasher = new PasswordHasher<AspNetUser>();
+        if (passwordHasher.VerifyHashedPassword(user, user.PasswordHash, credentials.Password) == PasswordVerificationResult.Success) {
+            return user;
+        }
+        throw new BadRequestException("Incorrect username or password");
     }
 
     private async Task SetIdentity(string userId, string email, string role) {
@@ -58,20 +69,17 @@ public class AuthController : BaseController {
     }
 
     [HttpPost("register")]
-    public async Task<IActionResult> Register([FromBody] RegisterAccount req) {
+    public async Task<IActionResult> Register([FromBody] RegisterAccountRequest req) {
         await ValidateRegisterFields(req);
         var user = Mapper.Map(req, new AspNetUser());
-        user.CustomerId = await GetUserId();
+        var passwordHasher = new PasswordHasher<AspNetUser>();
+        user.PasswordHash = req.Password;
+        user.PasswordHash = passwordHasher.HashPassword(user, user.PasswordHash);
         await _userRepository.CreateAsync(user);
         return Ok();
     }
 
-    private async Task<int> GetUserId() {
-        var user = (await _userRepository.ToListAsync()).OrderByDescending(u => u.CustomerId).FirstOrDefault();
-        return user == null ? 1 : (user.CustomerId + 1);
-    }
-
-    private async Task ValidateRegisterFields(RegisterAccount req) {
+    private async Task ValidateRegisterFields(RegisterAccountRequest req) {
         if (req.Email.Equals(_appSettings.AdminAccount.Email)) {
             throw new BadRequestException("Email already existed");
         }

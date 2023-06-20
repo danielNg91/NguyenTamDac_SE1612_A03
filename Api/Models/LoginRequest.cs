@@ -4,7 +4,7 @@ namespace Api.Models;
 
 public class LoginRequest
 {
-    [Required]
+    [Required, EmailAddress]
     public string Email { get; set; }
 
     [Required]

@@ -68,15 +68,8 @@ public class OrdersController : BaseController
     {
         var user = await _customerRepository.FoundOrThrow(c => c.CustomerId == req.CustomerId, new BadRequestException("Customer not exist"));
         Order entity = Mapper.Map(req, new Order());
-        entity.OrderId = await GetId();
         await _orderRepository.CreateAsync(entity);
         return StatusCode(StatusCodes.Status201Created);
-    }
-
-    private async Task<int> GetId()
-    {
-        var order = (await _orderRepository.ToListAsync()).OrderByDescending(u => u.OrderId).FirstOrDefault();
-        return order == null ? 1 : (order.OrderId + 1);
     }
 
     [HttpGet("{id}")]
