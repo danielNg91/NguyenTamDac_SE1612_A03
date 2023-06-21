@@ -17,7 +17,8 @@ namespace Repository {
         }
 
         public virtual DbSet<Category> Categories { get; set; }
-        public virtual DbSet<AspNetUser> AspNetUserss { get; set; }
+        public virtual DbSet<AspNetUser> AspNetUsers { get; set; }
+        public virtual DbSet<AspNetRole> AspNetRoles { get; set; }
         public virtual DbSet<FlowerBouquet> FlowerBouquets { get; set; }
         public virtual DbSet<Order> Orders { get; set; }
         public virtual DbSet<OrderDetail> OrderDetails { get; set; }

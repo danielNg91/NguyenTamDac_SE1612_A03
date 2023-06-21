@@ -19,17 +19,17 @@ namespace Api.Controllers;
 [Route("api/v1/auth")]
 public class AuthController : BaseController {
     private readonly AppSettings _appSettings;
-    private readonly IRepository<AspNetUser> _userRepository;
     private readonly UserManager<AspNetUser> _userManager;
+    private readonly RoleManager<AspNetRole> _roleManager;
 
     public AuthController(
         IOptions<AppSettings> appSettings,
-        IRepository<AspNetUser> userRepository,
-        UserManager<AspNetUser> userManager
+        UserManager<AspNetUser> userManager,
+        RoleManager<AspNetRole> roleManager
     ) {
         _appSettings = appSettings.Value;
-        _userRepository = userRepository;
         _userManager = userManager;
+        _roleManager = roleManager;
     }
 
     [HttpPost("login")]
@@ -63,25 +63,9 @@ public class AuthController : BaseController {
             }
 
             var token = GetToken(authClaims);
-
-            return Ok(new {
-                token = new JwtSecurityTokenHandler().WriteToken(token),
-                expiration = token.ValidTo
-            });
+            return Ok(ToLoginResponse(user, new JwtSecurityTokenHandler().WriteToken(token), token.ValidTo));
         }
         return Unauthorized();
-    }
-
-    private async Task<AspNetUser> ValidateNormalUser(LoginRequest credentials) {
-        var user = await _userRepository.FoundOrThrow(
-            u => u.Email.Equals(credentials.Email),
-            new BadRequestException("User not exist")
-        );
-        var passwordHasher = new PasswordHasher<AspNetUser>();
-        if (passwordHasher.VerifyHashedPassword(user, user.PasswordHash, credentials.Password) == PasswordVerificationResult.Success) {
-            return user;
-        }
-        throw new BadRequestException("Incorrect username or password");
     }
 
     [HttpPost]
@@ -92,9 +76,21 @@ public class AuthController : BaseController {
         user.SecurityStamp = Guid.NewGuid().ToString();
         var result = await _userManager.CreateAsync(user, req.Password);
         if (!result.Succeeded)
-            throw new BadRequestException("User creation failed! Please check user details and try again.");
-
+            throw new BadRequestException(result);
+        await AddUserRoles(user);
         return Ok();
+    }
+
+    private async Task AddUserRoles(AspNetUser user, string role = PolicyName.CUSTOMER) {
+        if (!await _roleManager.RoleExistsAsync(PolicyName.ADMIN)) {
+            await _roleManager.CreateAsync(new AspNetRole(PolicyName.ADMIN));
+        }
+        if (!await _roleManager.RoleExistsAsync(PolicyName.CUSTOMER)) {
+            await _roleManager.CreateAsync(new AspNetRole(PolicyName.CUSTOMER));
+        }
+        if (await _roleManager.RoleExistsAsync(role)) {
+            await _userManager.AddToRoleAsync(user, role);
+        }
     }
 
     private async Task ValidateRegisterFields(RegisterAccountRequest req) {
@@ -108,9 +104,10 @@ public class AuthController : BaseController {
         }
     }
 
-    private LoginResponse ToLoginResponse(AspNetUser user, string token) {
+    private LoginResponse ToLoginResponse(AspNetUser user, string token, DateTime expiration) {
         var resp = Mapper.Map(user, new LoginResponse());
         resp.Token = token;
+        resp.Expiration = expiration;
         return resp;
     }
 

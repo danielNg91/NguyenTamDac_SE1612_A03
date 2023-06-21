@@ -37,7 +37,7 @@ var builder = WebApplication.CreateBuilder(args);
         options.UseSqlServer(appSettings.ConnectionStrings.FUFlowerBouquetManagement);
     });
 
-    services.AddIdentity<AspNetUser, IdentityRole<int>>()
+    services.AddIdentity<AspNetUser, AspNetRole>()
         .AddEntityFrameworkStores<FUFlowerBouquetManagementContext>()
         .AddDefaultTokenProviders();
     services.AddAuthentication(options => {

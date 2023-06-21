@@ -10,4 +10,5 @@ public class LoginResponse : IMapFrom<AspNetUser>
     public string Role { get; set; }
     public string UserName { get; set; }
     public string Token { get; set; }
+    public DateTime Expiration { get; set; }
 }
