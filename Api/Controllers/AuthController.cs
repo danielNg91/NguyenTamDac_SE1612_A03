@@ -98,7 +98,7 @@ public class AuthController : BaseController {
 
     [HttpPost]
     [Route("register")]
-    public async Task<IActionResult> Register([FromBody] RegisterAccountRequest req) {
+    public async Task<IActionResult> Register([FromBody] RegisterRequest req) {
         await ValidateRegisterFields(req);
         var user = Mapper.Map(req, new AspNetUser());
         user.SecurityStamp = Guid.NewGuid().ToString();
@@ -121,7 +121,7 @@ public class AuthController : BaseController {
         }
     }
 
-    private async Task ValidateRegisterFields(RegisterAccountRequest req) {
+    private async Task ValidateRegisterFields(RegisterRequest req) {
         if (req.Email.Equals(_appSettings.AdminAccount.Email)) {
             throw new BadRequestException("Email already existed");
         }

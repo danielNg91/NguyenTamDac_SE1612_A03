@@ -8,6 +8,7 @@ using Repository;
 
 namespace Api.Controllers;
 
+[Authorize]
 [Route("api/v1/flower-bouquets")]
 public class FlowerBouquetsController : BaseController
 {
@@ -28,13 +29,27 @@ public class FlowerBouquetsController : BaseController
     }
 
     [HttpGet]
-    public async Task<IActionResult> GetFlowerBouquets()
+    public async Task<IActionResult> GetFlowerBouquets(string? name, decimal? minPrice, decimal? maxPrice)
     {
-        return Ok(await _flowerRepository.ToListAsync());
+        IList<FlowerBouquet> flowers;
+        if (string.IsNullOrEmpty(name)) {
+            flowers = await _flowerRepository.ToListAsync();
+        } else {
+            flowers = await _flowerRepository.WhereAsync(f => f.FlowerBouquetName.Contains(name));
+        }
+
+        if (minPrice != null && maxPrice != null) {
+            if (minPrice > maxPrice) {
+                throw new BadRequestException("Min price cannot greater than Max price");
+            }
+            flowers = flowers.Where(f => f.UnitPrice >= minPrice && f.UnitPrice <= maxPrice).ToList();
+        }
+
+        return Ok(flowers);
     }
 
     [HttpPost]
-    public async Task<IActionResult> CreateFlowerBouquet([FromBody] CreateFlowerBouquet req)
+    public async Task<IActionResult> CreateFlowerBouquet([FromBody] CreateFlowerRequest req)
     {
         FlowerBouquet entity = Mapper.Map(req, new FlowerBouquet());
         await ValidateNavigations(entity);
@@ -50,7 +65,7 @@ public class FlowerBouquetsController : BaseController
     }
 
     [HttpPut("{id}")]
-    public async Task<IActionResult> UpdateFlowerBouquet(int id, [FromBody] UpdateFlowerBouquet req)
+    public async Task<IActionResult> UpdateFlowerBouquet(int id, [FromBody] UpdateFlowerRequest req)
     {
         var target = await _flowerRepository.FoundOrThrow(f => f.FlowerBouquetId == id, new NotFoundException());
         FlowerBouquet entity = Mapper.Map(req, target);

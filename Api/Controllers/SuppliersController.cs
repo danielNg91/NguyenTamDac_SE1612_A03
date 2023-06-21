@@ -1,9 +1,13 @@
-﻿using BusinessObjects;
+﻿using Api.Auth;
+using Api.Models;
+using BusinessObjects;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Repository;
 
 namespace Api.Controllers;
 
+[Authorize(Roles = PolicyName.ADMIN)]
 [Route("api/v1/suppliers")]
 public class SuppliersController : BaseController
 {
@@ -15,8 +19,15 @@ public class SuppliersController : BaseController
     }
 
     [HttpGet]
-    public async Task<IActionResult> GetCategoris()
+    public async Task<IActionResult> GetSupp()
     {
         return Ok(await _supplierRepository.ToListAsync());
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> CreateSupp([FromBody] CreateSupplierRequest req) {
+        var entity = Mapper.Map(req, new Supplier());
+        await _supplierRepository.CreateAsync(entity);
+        return StatusCode(StatusCodes.Status201Created);
     }
 }

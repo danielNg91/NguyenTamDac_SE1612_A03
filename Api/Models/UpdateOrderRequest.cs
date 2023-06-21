@@ -3,7 +3,7 @@ using BusinessObjects;
 
 namespace Api.Models;
 
-public class UpdateOrder : IMapTo<Order>
+public class UpdateOrderRequest : IMapTo<Order>
 {
     public DateTime? OrderDate { get; set; }
     

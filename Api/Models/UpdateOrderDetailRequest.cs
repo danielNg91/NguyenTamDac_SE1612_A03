@@ -4,7 +4,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace Api.Models;
 
-public class UpdateOrderDetail : IMapTo<OrderDetail>
+public class UpdateOrderDetailRequest : IMapTo<OrderDetail>
 {
     public decimal? UnitPrice { get; set; }
     public int? Quantity { get; set; }

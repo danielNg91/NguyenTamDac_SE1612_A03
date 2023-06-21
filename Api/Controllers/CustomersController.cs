@@ -30,7 +30,7 @@ public class CustomersController : BaseController
 
 
     [HttpPost]
-    public async Task<IActionResult> CreateCustomer([FromBody] CreateCustomer req)
+    public async Task<IActionResult> CreateCustomer([FromBody] CreateCustomerRequest req)
     {
         await ValidateRegisterFields(req);
         AspNetUser entity = Mapper.Map(req, new AspNetUser());
@@ -38,7 +38,7 @@ public class CustomersController : BaseController
         return StatusCode(StatusCodes.Status201Created);
     }
 
-    private async Task ValidateRegisterFields(CreateCustomer req)
+    private async Task ValidateRegisterFields(CreateCustomerRequest req)
     {
         if (req.Email.Equals(_appSettings.Value.AdminAccount.Email))
         {
@@ -59,7 +59,7 @@ public class CustomersController : BaseController
     }
 
     [HttpPut("{id}")]
-    public async Task<IActionResult> UpdateCustomer(int id, [FromBody] UpdateCustomer req) {
+    public async Task<IActionResult> UpdateCustomer(int id, [FromBody] UpdateCustomerRequest req) {
         var target = await _customerRepository.FoundOrThrow(c => c.Id == id, new NotFoundException());
         var entity = Mapper.Map(req, target);
         await _customerRepository.UpdateAsync(entity);

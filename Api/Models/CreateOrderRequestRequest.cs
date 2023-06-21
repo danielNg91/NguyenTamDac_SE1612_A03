@@ -4,7 +4,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace Api.Models;
 
-public class CreateOrder : IMapTo<Order>
+public class CreateOrderRequestRequest : IMapTo<Order>
 {
     [Required]
     public DateTime OrderDate { get; set; }

@@ -8,7 +8,7 @@ using Repository;
 
 namespace Api.Controllers;
 
-
+[Authorize]
 [Route("api/v1/orders")]
 public class OrdersController : BaseController
 {
@@ -64,8 +64,7 @@ public class OrdersController : BaseController
     }
 
     [HttpPost]
-    public async Task<IActionResult> CreateOrder([FromBody] CreateOrder req) {
-        var user = await _customerRepository.FoundOrThrow(c => c.Id == CurrentUserID, new BadRequestException("Customer not exist"));
+    public async Task<IActionResult> CreateOrder([FromBody] CreateOrderRequestRequest req) {
         Order entity = Mapper.Map(req, new Order());
         await _orderRepository.CreateAsync(entity);
         return StatusCode(StatusCodes.Status201Created);
@@ -83,7 +82,7 @@ public class OrdersController : BaseController
     }
 
     [HttpPut("{id}")]
-    public async Task<IActionResult> UpdateOrder(int id, [FromBody] UpdateOrder req)
+    public async Task<IActionResult> UpdateOrder(int id, [FromBody] UpdateOrderRequest req)
     {
         var target = await _orderRepository.FoundOrThrow(c => c.OrderId == id, new NotFoundException());
         Order entity = Mapper.Map(req, target);
@@ -136,7 +135,7 @@ public class OrdersController : BaseController
     }
 
     [HttpPut("{orderId}/order-details/{flowerId}")]
-    public async Task<IActionResult> GetOrderDetails(int orderId, int flowerId, UpdateOrderDetail req)
+    public async Task<IActionResult> GetOrderDetails(int orderId, int flowerId, UpdateOrderDetailRequest req)
     {
         var detail = await _oderDetailRepository.FoundOrThrow(c => c.OrderId == orderId && c.FlowerBouquetId == flowerId, new NotFoundException());
         var entity = Mapper.Map(req, detail);

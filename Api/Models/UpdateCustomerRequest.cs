@@ -4,7 +4,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace Api.Models;
 
-public class UpdateCustomer : IMapTo<AspNetUser>
+public class UpdateCustomerRequest : IMapTo<AspNetUser>
 {
     [MaxLength(180)]
     public string? CustomerName { get; set; }

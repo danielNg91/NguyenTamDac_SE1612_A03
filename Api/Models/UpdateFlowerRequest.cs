@@ -4,7 +4,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace Api.Models;
 
-public class UpdateFlowerBouquet : IMapTo<FlowerBouquet>
+public class UpdateFlowerRequest : IMapTo<FlowerBouquet>
 {
     public int? CategoryId { get; set; }
     
