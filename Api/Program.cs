@@ -28,6 +28,10 @@ var builder = WebApplication.CreateBuilder(args);
         opts.Lockout.AllowedForNewUsers = true;
         opts.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(10);
         opts.Lockout.MaxFailedAccessAttempts = 3;
+        opts.Password.RequireDigit = false;
+        opts.Password.RequireNonAlphanumeric = false;
+        opts.Password.RequireUppercase = false;
+        opts.Password.RequireLowercase = false;
     });
 
     services.AddAutoMapper(Assembly.GetExecutingAssembly());
@@ -64,7 +68,6 @@ var builder = WebApplication.CreateBuilder(args);
     });
 
     services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
-    //services.AddTransient<JwtMiddleware>();
     services.AddTransient<AuthenticationEvent>();
 
     services.AddCors(options => {
@@ -112,8 +115,11 @@ var builder = WebApplication.CreateBuilder(args);
         app.UseSwaggerUI();
     }
     app.UseCors("CorsPolicy");
-    //app.UseMiddleware<JwtMiddleware>();
-    app.UseApiResponseAndExceptionWrapper(new AutoWrapperOptions { IsApiOnly = false, ShowIsErrorFlagForSuccessfulResponse = true });
+    app.UseApiResponseAndExceptionWrapper(
+        new AutoWrapperOptions {
+            IsApiOnly = false, ShowIsErrorFlagForSuccessfulResponse = true
+        }
+    );
     app.UseHttpsRedirection();
     app.UseAuthentication();
     app.UseAuthorization();

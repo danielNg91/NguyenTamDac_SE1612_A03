@@ -34,38 +34,50 @@ public class AuthController : BaseController {
 
     [HttpPost("login")]
     public async Task<IActionResult> Login([FromBody] LoginRequest credentials) {
-        //if (credentials.Email.Equals(_appSettings.AdminAccount.Email) &&
-        //    credentials.Password.Equals(_appSettings.AdminAccount.Password)) {
-        //    var admin = new AspNetUser {
-        //        CustomerId = int.MaxValue,
-        //        Email = credentials.Email
-        //    };
-        //    var adminToken = GenerateJwtToken(admin, PolicyName.ADMIN);
-        //    return Ok(ToLoginResponse(admin, adminToken));
-        //}
-
-        //var user = await ValidateNormalUser(credentials);
-        //var userToken = GenerateJwtToken(user, PolicyName.CUSTOMER);
-        //return Ok(ToLoginResponse(user, userToken));
-
-        var user = await _userManager.FindByEmailAsync(credentials.Email);
-        if (user != null && await _userManager.CheckPasswordAsync(user, credentials.Password)) {
-            var userRoles = await _userManager.GetRolesAsync(user);
-
-            var authClaims = new List<Claim>
-            {
-                    new Claim(ClaimTypes.Name, user.UserName),
-                    new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
+        if (
+            credentials.Email.Equals(_appSettings.AdminAccount.Email) &&
+            credentials.Password.Equals(_appSettings.AdminAccount.Password)
+        ) {
+            var user = (await _userManager.FindByEmailAsync(credentials.Email));
+            if (user == null) {
+                var admin = new AspNetUser {
+                    Email = credentials.Email,
+                    SecurityStamp = Guid.NewGuid().ToString(),
+                    UserName = "admin"
                 };
-
-            foreach (var userRole in userRoles) {
-                authClaims.Add(new Claim(ClaimTypes.Role, userRole));
-            }
-
-            var token = GetToken(authClaims);
-            return Ok(ToLoginResponse(user, new JwtSecurityTokenHandler().WriteToken(token), token.ValidTo));
+                var result = await _userManager.CreateAsync(admin, credentials.Password);
+                if (!result.Succeeded)
+                    throw new BadRequestException(result);
+                await AddUserRoles(admin, PolicyName.ADMIN);
+                await AddUserRoles(admin, PolicyName.CUSTOMER);
+            }   
         }
-        return Unauthorized();
+        return await ToLoginResponse(credentials);
+    }
+
+    private async Task<IActionResult> ToLoginResponse(LoginRequest credentials) {
+        var token = await GetUserToken(credentials);
+        return Ok(new {
+            token = new JwtSecurityTokenHandler().WriteToken(token),
+            expiration = token.ValidTo
+        });
+    }
+
+    private async Task<JwtSecurityToken> GetUserToken(LoginRequest credentials) {
+        var user = await _userManager.FindByEmailAsync(credentials.Email);
+        if (user == null || !await _userManager.CheckPasswordAsync(user, credentials.Password)) {
+            throw new UnauthorizedException();
+        }
+        var userRoles = await _userManager.GetRolesAsync(user);
+        var authClaims = new List<Claim> {
+            new Claim(ClaimTypes.Name, user.UserName),
+            new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
+        };
+        foreach (var userRole in userRoles) {
+            authClaims.Add(new Claim(ClaimTypes.Role, userRole));
+        }
+        var token = GenerateToken(authClaims);
+        return token;
     }
 
     [HttpPost]
@@ -77,7 +89,7 @@ public class AuthController : BaseController {
         var result = await _userManager.CreateAsync(user, req.Password);
         if (!result.Succeeded)
             throw new BadRequestException(result);
-        await AddUserRoles(user);
+        await AddUserRoles(user, PolicyName.CUSTOMER);
         return Ok();
     }
 
@@ -104,16 +116,8 @@ public class AuthController : BaseController {
         }
     }
 
-    private LoginResponse ToLoginResponse(AspNetUser user, string token, DateTime expiration) {
-        var resp = Mapper.Map(user, new LoginResponse());
-        resp.Token = token;
-        resp.Expiration = expiration;
-        return resp;
-    }
-
-    private JwtSecurityToken GetToken(List<Claim> authClaims) {
+    private JwtSecurityToken GenerateToken(List<Claim> authClaims) {
         var authSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_appSettings.JWTOptions.Secret));
-
         var token = new JwtSecurityToken(
             issuer: _appSettings.JWTOptions.ValidIssuer,
             audience: _appSettings.JWTOptions.ValidAudience,
@@ -121,7 +125,6 @@ public class AuthController : BaseController {
             claims: authClaims,
             signingCredentials: new SigningCredentials(authSigningKey, SecurityAlgorithms.HmacSha256)
         );
-
         return token;
     }
 }

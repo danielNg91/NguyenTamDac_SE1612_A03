@@ -19,7 +19,7 @@ public class UnauthorizedException : BaseHttpException
     {
     }
 
-    public UnauthorizedException(string message, string errorCode = null, string refLink = null) : base(message, statusCode, errorCode, refLink)
+    public UnauthorizedException(string message = "Unauthorized", string errorCode = null, string refLink = null) : base(message, statusCode, errorCode, refLink)
     {
     }
 }
