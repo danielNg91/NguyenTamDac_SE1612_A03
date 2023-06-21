@@ -1,14 +1,11 @@
-﻿using Api.Models;
-using Api.Utils;
+﻿using Api.Auth;
+using Api.Models;
 using Application.Exceptions;
 using BusinessObjects;
-using Microsoft.AspNetCore.Authentication;
-using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
-using Repository;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
@@ -21,15 +18,18 @@ public class AuthController : BaseController {
     private readonly AppSettings _appSettings;
     private readonly UserManager<AspNetUser> _userManager;
     private readonly RoleManager<AspNetRole> _roleManager;
+    private readonly SignInManager<AspNetUser> _signInManager;
 
     public AuthController(
         IOptions<AppSettings> appSettings,
         UserManager<AspNetUser> userManager,
-        RoleManager<AspNetRole> roleManager
+        RoleManager<AspNetRole> roleManager,
+        SignInManager<AspNetUser> signInManager
     ) {
         _appSettings = appSettings.Value;
         _userManager = userManager;
         _roleManager = roleManager;
+        _signInManager = signInManager;
     }
 
     [HttpPost("login")]
@@ -50,7 +50,7 @@ public class AuthController : BaseController {
                     throw new BadRequestException(result);
                 await AddUserRoles(admin, PolicyName.ADMIN);
                 await AddUserRoles(admin, PolicyName.CUSTOMER);
-            }   
+            }
         }
         return await ToLoginResponse(credentials);
     }
@@ -65,9 +65,24 @@ public class AuthController : BaseController {
 
     private async Task<JwtSecurityToken> GetUserToken(LoginRequest credentials) {
         var user = await _userManager.FindByEmailAsync(credentials.Email);
-        if (user == null || !await _userManager.CheckPasswordAsync(user, credentials.Password)) {
+        var result = await _signInManager.PasswordSignInAsync(
+            user, 
+            credentials.Password, 
+            isPersistent: false, 
+            lockoutOnFailure: true
+        );
+        if (!result.Succeeded) {
+            if (user == null) {
+                throw new UnauthorizedException();
+            }
+            if (result.IsLockedOut) {
+                throw new BadRequestException("This account is lockout");
+            }
+            await _userManager.AccessFailedAsync(user);
             throw new UnauthorizedException();
         }
+
+        await _userManager.ResetAccessFailedCountAsync(user);
         var userRoles = await _userManager.GetRolesAsync(user);
         var authClaims = new List<Claim> {
             new Claim("id", user.Id.ToString()),

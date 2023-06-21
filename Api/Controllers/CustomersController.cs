@@ -1,5 +1,5 @@
-﻿using Api.Models;
-using Api.Utils;
+﻿using Api.Auth;
+using Api.Models;
 using Application.Exceptions;
 using BusinessObjects;
 using Microsoft.AspNetCore.Authorization;
