@@ -9,7 +9,7 @@ using Repository;
 
 namespace Api.Controllers;
 
-
+[Authorize(Roles = PolicyName.ADMIN)]
 [Route("api/v1/customers")]
 public class CustomersController : BaseController
 {
@@ -52,27 +52,24 @@ public class CustomersController : BaseController
         }
     }
 
-    //[HttpGet("{id}")]
-    //public async Task<IActionResult> GetCustomer(int id)
-    //{
-    //    var target = await _customerRepository.FoundOrThrow(c => c.Id == id.ToString(), new NotFoundException());
-    //    return Ok(target);
-    //}
+    [HttpGet("{id}")]
+    public async Task<IActionResult> GetCustomer(int id) {
+        var target = await _customerRepository.FoundOrThrow(c => c.Id == id, new NotFoundException());
+        return Ok(target);
+    }
 
-    //[HttpPut("{id}")]
-    //public async Task<IActionResult> UpdateCustomer(int id, [FromBody] UpdateCustomer req)
-    //{
-    //    var target = await _customerRepository.FoundOrThrow(c => c.Id == id.ToString(), new NotFoundException());
-    //    Customer entity = Mapper.Map(req, target);
-    //    await _customerRepository.UpdateAsync(entity);
-    //    return StatusCode(StatusCodes.Status204NoContent);
-    //}
+    [HttpPut("{id}")]
+    public async Task<IActionResult> UpdateCustomer(int id, [FromBody] UpdateCustomer req) {
+        var target = await _customerRepository.FoundOrThrow(c => c.Id == id, new NotFoundException());
+        var entity = Mapper.Map(req, target);
+        await _customerRepository.UpdateAsync(entity);
+        return StatusCode(StatusCodes.Status204NoContent);
+    }
 
-    //[HttpDelete("{id}")]
-    //public async Task<IActionResult> DeleteCustomer(int id)
-    //{
-    //    var target = await _customerRepository.FoundOrThrow(c => c.Id == id.ToString(), new NotFoundException());
-    //    await _customerRepository.DeleteAsync(target);
-    //    return StatusCode(StatusCodes.Status204NoContent);
-    //}
+    [HttpDelete("{id}")]
+    public async Task<IActionResult> DeleteCustomer(int id) {
+        var target = await _customerRepository.FoundOrThrow(c => c.Id == id, new NotFoundException());
+        await _customerRepository.DeleteAsync(target);
+        return StatusCode(StatusCodes.Status204NoContent);
+    }
 }

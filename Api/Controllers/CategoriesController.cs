@@ -6,7 +6,6 @@ using Repository;
 
 namespace Api.Controllers;
 
-[Authorize(Roles = PolicyName.CUSTOMER)]
 [Route("api/v1/categories")]
 public class CategoriesController : BaseController
 {

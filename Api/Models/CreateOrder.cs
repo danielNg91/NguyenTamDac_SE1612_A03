@@ -6,9 +6,6 @@ namespace Api.Models;
 
 public class CreateOrder : IMapTo<Order>
 {
-    [Required, Range(0, int.MaxValue)]
-    public int CustomerId { get; set; }
-
     [Required]
     public DateTime OrderDate { get; set; }
 

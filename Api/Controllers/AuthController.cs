@@ -70,6 +70,7 @@ public class AuthController : BaseController {
         }
         var userRoles = await _userManager.GetRolesAsync(user);
         var authClaims = new List<Claim> {
+            new Claim("id", user.Id.ToString()),
             new Claim(ClaimTypes.Name, user.UserName),
             new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
         };
