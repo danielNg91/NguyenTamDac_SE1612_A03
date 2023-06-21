@@ -18,29 +18,58 @@ namespace Api.Controllers;
 
 [Route("api/v1/auth")]
 public class AuthController : BaseController {
-    private readonly IRepository<AspNetUser> _userRepository;
     private readonly AppSettings _appSettings;
+    private readonly IRepository<AspNetUser> _userRepository;
+    private readonly UserManager<AspNetUser> _userManager;
 
-    public AuthController(IOptions<AppSettings> appSettings, IRepository<AspNetUser> userRepository) {
+    public AuthController(
+        IOptions<AppSettings> appSettings,
+        IRepository<AspNetUser> userRepository,
+        UserManager<AspNetUser> userManager
+    ) {
         _appSettings = appSettings.Value;
         _userRepository = userRepository;
+        _userManager = userManager;
     }
 
     [HttpPost("login")]
     public async Task<IActionResult> Login([FromBody] LoginRequest credentials) {
-        if (credentials.Email.Equals(_appSettings.AdminAccount.Email) &&
-            credentials.Password.Equals(_appSettings.AdminAccount.Password)) {
-            var admin = new AspNetUser {
-                CustomerId = int.MaxValue,
-                Email = credentials.Email
-            };
-            var adminToken = GenerateJwtToken(admin, PolicyName.ADMIN);
-            return Ok(ToLoginResponse(admin, adminToken));
-        }
+        //if (credentials.Email.Equals(_appSettings.AdminAccount.Email) &&
+        //    credentials.Password.Equals(_appSettings.AdminAccount.Password)) {
+        //    var admin = new AspNetUser {
+        //        CustomerId = int.MaxValue,
+        //        Email = credentials.Email
+        //    };
+        //    var adminToken = GenerateJwtToken(admin, PolicyName.ADMIN);
+        //    return Ok(ToLoginResponse(admin, adminToken));
+        //}
 
-        var user = await ValidateNormalUser(credentials);
-        var userToken = GenerateJwtToken(user, PolicyName.CUSTOMER);
-        return Ok(ToLoginResponse(user, userToken));
+        //var user = await ValidateNormalUser(credentials);
+        //var userToken = GenerateJwtToken(user, PolicyName.CUSTOMER);
+        //return Ok(ToLoginResponse(user, userToken));
+
+        var user = await _userManager.FindByEmailAsync(credentials.Email);
+        if (user != null && await _userManager.CheckPasswordAsync(user, credentials.Password)) {
+            var userRoles = await _userManager.GetRolesAsync(user);
+
+            var authClaims = new List<Claim>
+            {
+                    new Claim(ClaimTypes.Name, user.UserName),
+                    new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
+                };
+
+            foreach (var userRole in userRoles) {
+                authClaims.Add(new Claim(ClaimTypes.Role, userRole));
+            }
+
+            var token = GetToken(authClaims);
+
+            return Ok(new {
+                token = new JwtSecurityTokenHandler().WriteToken(token),
+                expiration = token.ValidTo
+            });
+        }
+        return Unauthorized();
     }
 
     private async Task<AspNetUser> ValidateNormalUser(LoginRequest credentials) {
@@ -55,27 +84,16 @@ public class AuthController : BaseController {
         throw new BadRequestException("Incorrect username or password");
     }
 
-    private async Task SetIdentity(string userId, string email, string role) {
-        var claims = new List<Claim>
-                    {
-                        new Claim("id", userId),
-                        new Claim(ClaimTypes.Email, email),
-                        new Claim(ClaimTypes.Role, role)
-                    };
-        var claimsIdentity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
-        await HttpContext.SignInAsync(
-            CookieAuthenticationDefaults.AuthenticationScheme,
-            new ClaimsPrincipal(claimsIdentity), new AuthenticationProperties { IsPersistent = true });
-    }
-
-    [HttpPost("register")]
+    [HttpPost]
+    [Route("register")]
     public async Task<IActionResult> Register([FromBody] RegisterAccountRequest req) {
         await ValidateRegisterFields(req);
         var user = Mapper.Map(req, new AspNetUser());
-        var passwordHasher = new PasswordHasher<AspNetUser>();
-        user.PasswordHash = req.Password;
-        user.PasswordHash = passwordHasher.HashPassword(user, user.PasswordHash);
-        await _userRepository.CreateAsync(user);
+        user.SecurityStamp = Guid.NewGuid().ToString();
+        var result = await _userManager.CreateAsync(user, req.Password);
+        if (!result.Succeeded)
+            throw new BadRequestException("User creation failed! Please check user details and try again.");
+
         return Ok();
     }
 
@@ -84,37 +102,29 @@ public class AuthController : BaseController {
             throw new BadRequestException("Email already existed");
         }
 
-        var isEmailExisted = (await _userRepository.FirstOrDefaultAsync(u => u.Email == req.Email)) != null;
+        var isEmailExisted = (await _userManager.FindByEmailAsync(req.Email)) != null;
         if (isEmailExisted) {
             throw new BadRequestException("Email already existed");
         }
-    }
-
-    private string GenerateJwtToken(AspNetUser user, string role) {
-        var symmetricKey = Encoding.ASCII.GetBytes(_appSettings.Secret);
-        var tokenHandler = new JwtSecurityTokenHandler();
-        var now = DateTime.UtcNow;
-        var claims = new List<Claim> {
-            new Claim("id", user.CustomerId.ToString()),
-            new Claim(ClaimTypes.Email, user.Email),
-            new Claim(ClaimTypes.Role, role)
-        };
-        var tokenDescriptor = new SecurityTokenDescriptor {
-            Subject = new ClaimsIdentity(claims),
-            Expires = now.AddDays(7),
-            SigningCredentials = new SigningCredentials(
-                new SymmetricSecurityKey(symmetricKey),
-                SecurityAlgorithms.HmacSha256Signature
-            )
-        };
-        var stoken = tokenHandler.CreateToken(tokenDescriptor);
-        var token = tokenHandler.WriteToken(stoken);
-        return token;
     }
 
     private LoginResponse ToLoginResponse(AspNetUser user, string token) {
         var resp = Mapper.Map(user, new LoginResponse());
         resp.Token = token;
         return resp;
+    }
+
+    private JwtSecurityToken GetToken(List<Claim> authClaims) {
+        var authSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_appSettings.JWTOptions.Secret));
+
+        var token = new JwtSecurityToken(
+            issuer: _appSettings.JWTOptions.ValidIssuer,
+            audience: _appSettings.JWTOptions.ValidAudience,
+            expires: DateTime.Now.AddHours(3),
+            claims: authClaims,
+            signingCredentials: new SigningCredentials(authSigningKey, SecurityAlgorithms.HmacSha256)
+        );
+
+        return token;
     }
 }

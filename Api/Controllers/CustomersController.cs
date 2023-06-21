@@ -34,15 +34,8 @@ public class CustomersController : BaseController
     {
         await ValidateRegisterFields(req);
         AspNetUser entity = Mapper.Map(req, new AspNetUser());
-        entity.CustomerId = await GetUserId();
         await _customerRepository.CreateAsync(entity);
         return StatusCode(StatusCodes.Status201Created);
-    }
-
-    private async Task<int> GetUserId()
-    {
-        var user = (await _customerRepository.ToListAsync()).OrderByDescending(u => u.CustomerId).FirstOrDefault();
-        return user == null ? 1 : (user.CustomerId + 1);
     }
 
     private async Task ValidateRegisterFields(CreateCustomer req)
@@ -59,27 +52,27 @@ public class CustomersController : BaseController
         }
     }
 
-    [HttpGet("{id}")]
-    public async Task<IActionResult> GetCustomer(int id)
-    {
-        var target = await _customerRepository.FoundOrThrow(c => c.CustomerId == id, new NotFoundException());
-        return Ok(target);
-    }
+    //[HttpGet("{id}")]
+    //public async Task<IActionResult> GetCustomer(int id)
+    //{
+    //    var target = await _customerRepository.FoundOrThrow(c => c.Id == id.ToString(), new NotFoundException());
+    //    return Ok(target);
+    //}
 
-    [HttpPut("{id}")]
-    public async Task<IActionResult> UpdateCustomer(int id, [FromBody] UpdateCustomer req)
-    {
-        var target = await _customerRepository.FoundOrThrow(c => c.CustomerId == id, new NotFoundException());
-        AspNetUser entity = Mapper.Map(req, target);
-        await _customerRepository.UpdateAsync(entity);
-        return StatusCode(StatusCodes.Status204NoContent);
-    }
+    //[HttpPut("{id}")]
+    //public async Task<IActionResult> UpdateCustomer(int id, [FromBody] UpdateCustomer req)
+    //{
+    //    var target = await _customerRepository.FoundOrThrow(c => c.Id == id.ToString(), new NotFoundException());
+    //    Customer entity = Mapper.Map(req, target);
+    //    await _customerRepository.UpdateAsync(entity);
+    //    return StatusCode(StatusCodes.Status204NoContent);
+    //}
 
-    [HttpDelete("{id}")]
-    public async Task<IActionResult> DeleteCustomer(int id)
-    {
-        var target = await _customerRepository.FoundOrThrow(c => c.CustomerId == id, new NotFoundException());
-        await _customerRepository.DeleteAsync(target);
-        return StatusCode(StatusCodes.Status204NoContent);
-    }
+    //[HttpDelete("{id}")]
+    //public async Task<IActionResult> DeleteCustomer(int id)
+    //{
+    //    var target = await _customerRepository.FoundOrThrow(c => c.Id == id.ToString(), new NotFoundException());
+    //    await _customerRepository.DeleteAsync(target);
+    //    return StatusCode(StatusCodes.Status204NoContent);
+    //}
 }

@@ -1,11 +1,12 @@
-﻿using Api.Auth;
+﻿using Api.Utils;
 using BusinessObjects;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Repository;
 
 namespace Api.Controllers;
 
-[Authorize]
+[Authorize(Roles = PolicyName.CUSTOMER)]
 [Route("api/v1/categories")]
 public class CategoriesController : BaseController
 {

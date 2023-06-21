@@ -1,12 +1,12 @@
 ﻿using BusinessObjects;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 
 #nullable disable
 
-namespace Repository
-{
-    public partial class FUFlowerBouquetManagementContext : DbContext
-    {
+namespace Repository {
+    public partial class FUFlowerBouquetManagementContext : IdentityDbContext<AspNetUser, IdentityRole<int>, int> {
         public FUFlowerBouquetManagementContext()
         {
         }
@@ -17,7 +17,7 @@ namespace Repository
         }
 
         public virtual DbSet<Category> Categories { get; set; }
-        public virtual DbSet<AspNetUser> Customers { get; set; }
+        public virtual DbSet<AspNetUser> AspNetUserss { get; set; }
         public virtual DbSet<FlowerBouquet> FlowerBouquets { get; set; }
         public virtual DbSet<Order> Orders { get; set; }
         public virtual DbSet<OrderDetail> OrderDetails { get; set; }

@@ -1,13 +1,16 @@
 using Api;
-using Api.Auth;
 using Api.Utils;
 using AutoWrapper;
-using Microsoft.AspNetCore.Authorization;
+using BusinessObjects;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
+using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using Repository;
 using System.Reflection;
+using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -21,17 +24,47 @@ var builder = WebApplication.CreateBuilder(args);
     });
     services.AddEndpointsApiExplorer();
     services.Configure<AppSettings>(configuration.GetSection(nameof(AppSettings)));
+    services.Configure<IdentityOptions>(opts => {
+        opts.Lockout.AllowedForNewUsers = true;
+        opts.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(10);
+        opts.Lockout.MaxFailedAccessAttempts = 3;
+    });
+
     services.AddAutoMapper(Assembly.GetExecutingAssembly());
     services.AddDbContext<FUFlowerBouquetManagementContext>(options => {
-        {
-            var settings = services.BuildServiceProvider().GetService<IOptions<AppSettings>>();
-            Console.WriteLine(settings);
-            options.UseSqlServer(settings.Value.ConnectionStrings.FUFlowerBouquetManagement);
-        }
+        var appSettings = services.BuildServiceProvider().GetService<IOptions<AppSettings>>().Value;
+        Console.WriteLine(appSettings);
+        options.UseSqlServer(appSettings.ConnectionStrings.FUFlowerBouquetManagement);
+    });
+
+    services.AddIdentity<AspNetUser, IdentityRole<int>>()
+        .AddEntityFrameworkStores<FUFlowerBouquetManagementContext>()
+        .AddDefaultTokenProviders();
+    services.AddAuthentication(options => {
+        options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+        options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+        options.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
+    }).AddJwtBearer(options => {
+        var appSettings = services.BuildServiceProvider().GetService<IOptions<AppSettings>>().Value;
+        options.SaveToken = true;
+        options.RequireHttpsMetadata = false;
+        options.TokenValidationParameters = new TokenValidationParameters() {
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ValidAudience = appSettings.JWTOptions.ValidAudience,
+            ValidIssuer = appSettings.JWTOptions.ValidIssuer,
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(appSettings.JWTOptions.Secret))
+        };
+    });
+    services.AddAuthorization(options => {
+        options.AddPolicy(PolicyName.ADMIN,
+            policy => policy.RequireRole(PolicyName.ADMIN));
+        options.AddPolicy(PolicyName.CUSTOMER,
+            policy => policy.RequireRole(PolicyName.CUSTOMER));
     });
 
     services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
-    services.AddTransient<JwtMiddleware>();
+    //services.AddTransient<JwtMiddleware>();
     services.AddTransient<AuthenticationEvent>();
 
     services.AddCors(options => {
@@ -63,7 +96,7 @@ var builder = WebApplication.CreateBuilder(args);
         };
         OpenApiSecurityRequirement securityRequirements = new() {
             {
-                securityScheme, 
+                securityScheme,
                 new string[] { }
             },
         };
@@ -79,7 +112,7 @@ var builder = WebApplication.CreateBuilder(args);
         app.UseSwaggerUI();
     }
     app.UseCors("CorsPolicy");
-    app.UseMiddleware<JwtMiddleware>();
+    //app.UseMiddleware<JwtMiddleware>();
     app.UseApiResponseAndExceptionWrapper(new AutoWrapperOptions { IsApiOnly = false, ShowIsErrorFlagForSuccessfulResponse = true });
     app.UseHttpsRedirection();
     app.UseAuthentication();

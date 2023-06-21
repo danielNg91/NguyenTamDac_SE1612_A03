@@ -63,14 +63,14 @@ public class OrdersController : BaseController
         return Ok(orders);
     }
 
-    [HttpPost]
-    public async Task<IActionResult> CreateOrder([FromBody] CreateOrder req)
-    {
-        var user = await _customerRepository.FoundOrThrow(c => c.CustomerId == req.CustomerId, new BadRequestException("Customer not exist"));
-        Order entity = Mapper.Map(req, new Order());
-        await _orderRepository.CreateAsync(entity);
-        return StatusCode(StatusCodes.Status201Created);
-    }
+    //[HttpPost]
+    //public async Task<IActionResult> CreateOrder([FromBody] CreateOrder req)
+    //{
+    //    var user = await _customerRepository.FoundOrThrow(c => c.CustomerId == req.CustomerId, new BadRequestException("Customer not exist"));
+    //    Order entity = Mapper.Map(req, new Order());
+    //    await _orderRepository.CreateAsync(entity);
+    //    return StatusCode(StatusCodes.Status201Created);
+    //}
 
     [HttpGet("{id}")]
     public async Task<IActionResult> GetOrder(int id)
