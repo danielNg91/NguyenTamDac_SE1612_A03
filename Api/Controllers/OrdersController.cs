@@ -117,7 +117,13 @@ public class OrdersController : BaseController
         var order = await _orderRepository.FoundOrThrow(c => c.OrderId == orderId, new BadRequestException("Order not exist"));
         OrderDetail entity = Mapper.Map(orderDetail, new OrderDetail());
         entity.OrderId = orderId;
+        var flower = await _flowerRepository.FoundOrThrow(c => c.FlowerBouquetId == orderDetail.FlowerBouquetId, new BadRequestException("Flower not exist"));
+        if (flower.UnitsInStock < orderDetail.Quantity) {
+            throw new BadRequestException("Flower out of stock");
+        }
         await _oderDetailRepository.CreateAsync(entity);
+        flower.UnitsInStock -= orderDetail.Quantity;
+        await _flowerRepository.UpdateAsync(flower);
         return StatusCode(StatusCodes.Status201Created);
     }
 
