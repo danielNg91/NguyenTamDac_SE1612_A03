@@ -6,6 +6,6 @@ public interface IMapFrom<T>
 {
     void MappingFrom(Profile profile) => profile.CreateMap(typeof(T), GetType())
                                                 .ForAllMembers(opt => opt.Condition(
-                                                    (srs, dest, sourceMember) => sourceMember != null)
+                                                    (srs, dest, sourceMember) => sourceMember != null && !sourceMember.Equals(0))
                                                 );
 }

@@ -6,6 +6,6 @@ public interface IMapTo<T>
 {
     void MappingTo(Profile profile) => profile.CreateMap(GetType(), typeof(T))
                                               .ForAllMembers(opt => opt.Condition(
-                                                  (srs, dest, sourceMember) => sourceMember != null)
+                                                  (srs, dest, sourceMember) => sourceMember != null && !sourceMember.Equals(0))
                                               );
 }

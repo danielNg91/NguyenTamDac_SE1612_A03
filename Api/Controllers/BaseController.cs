@@ -1,4 +1,5 @@
-﻿using AutoMapper;
+﻿using Api.Auth;
+using AutoMapper;
 using Microsoft.AspNetCore.Mvc;
 using Repository;
 using System.Linq.Expressions;
@@ -23,5 +24,10 @@ public class BaseController : ControllerBase
             return 0;
         }
         return int.Parse(userID.Value);
+    }
+
+    public bool IsAdmin => IsCurrentUserAdmin();
+    private bool IsCurrentUserAdmin() {
+        return User.IsInRole(PolicyName.ADMIN);
     }
 }

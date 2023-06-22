@@ -1,4 +1,5 @@
-﻿using Api.Models;
+﻿using Api.Auth;
+using Api.Models;
 using Api.Utils;
 using Application.Exceptions;
 using BusinessObjects;
@@ -48,6 +49,7 @@ public class FlowerBouquetsController : BaseController
         return Ok(flowers);
     }
 
+    [Authorize(Roles = PolicyName.ADMIN)]
     [HttpPost]
     public async Task<IActionResult> CreateFlowerBouquet([FromBody] CreateFlowerRequest req)
     {
@@ -64,6 +66,7 @@ public class FlowerBouquetsController : BaseController
         return Ok(target);
     }
 
+    [Authorize(Roles = PolicyName.ADMIN)]
     [HttpPut("{id}")]
     public async Task<IActionResult> UpdateFlowerBouquet(int id, [FromBody] UpdateFlowerRequest req)
     {
@@ -74,6 +77,7 @@ public class FlowerBouquetsController : BaseController
         return StatusCode(StatusCodes.Status204NoContent);
     }
 
+    [Authorize(Roles = PolicyName.ADMIN)]
     [HttpDelete("{id}")]
     public async Task<IActionResult> DeleteFlowerBouquet(int id)
     {

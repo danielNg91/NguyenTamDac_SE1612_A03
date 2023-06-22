@@ -32,6 +32,9 @@ public class OrdersController : BaseController
     [HttpGet]
     public async Task<IActionResult> GetOrders(DateTime? startDate, DateTime? endDate, int? id)
     {
+        if (!IsAdmin) {
+            id = CurrentUserID;
+        }
         IOrderedEnumerable<Order> orders;
 
         if (id != null)
@@ -66,6 +69,7 @@ public class OrdersController : BaseController
     [HttpPost]
     public async Task<IActionResult> CreateOrder([FromBody] CreateOrderRequestRequest req) {
         Order entity = Mapper.Map(req, new Order());
+        entity.CustomerId = CurrentUserID;
         await _orderRepository.CreateAsync(entity);
         return StatusCode(StatusCodes.Status201Created);
     }
@@ -73,12 +77,23 @@ public class OrdersController : BaseController
     [HttpGet("{id}")]
     public async Task<IActionResult> GetOrder(int id)
     {
-        var target = await _orderRepository.FirstOrDefaultAsync(c => c.OrderId == id, new string[] { "OrderDetails" });
-        if (target == null)
+        Order order;
+        if (!IsAdmin) {
+            order = await _orderRepository.FirstOrDefaultAsync(
+                c => c.OrderId == id && c.CustomerId == CurrentUserID, 
+                new string[] { "OrderDetails" }
+            );
+        } else {
+            order = await _orderRepository.FirstOrDefaultAsync(
+                c => c.OrderId == id, 
+                new string[] { "OrderDetails" }
+            );
+        }
+        if (order == null)
         {
             throw new NotFoundException();
         }
-        return Ok(target);
+        return Ok(order);
     }
 
     [HttpPut("{id}")]
@@ -98,9 +113,22 @@ public class OrdersController : BaseController
         return StatusCode(StatusCodes.Status204NoContent);
     }
 
+    private async Task ValidateOrderOfCustomer(int orderId) {
+        if (!IsAdmin) {
+            var order = await _orderRepository.FoundOrThrow(
+                o => o.OrderId == orderId,
+                new BadRequestException()
+            );
+            if (order.CustomerId != CurrentUserID) {
+                throw new ForbiddenException();
+            }
+        }
+    }
+
     [HttpGet("{orderId}/order-details")]
     public async Task<IActionResult> GetOrderDetails(int orderId)
     {
+        await ValidateOrderOfCustomer(orderId);
         var target = await _oderDetailRepository.WhereAsync(
             c => c.OrderId == orderId, new string[] { nameof(FlowerBouquet) }
             );
@@ -114,6 +142,7 @@ public class OrdersController : BaseController
     [HttpPost("{orderId}/order-details")]
     public async Task<IActionResult> CreateOrderDetails(int orderId, CreateOrderDetail orderDetail)
     {
+        await ValidateOrderOfCustomer(orderId);
         var order = await _orderRepository.FoundOrThrow(c => c.OrderId == orderId, new BadRequestException("Order not exist"));
         OrderDetail entity = Mapper.Map(orderDetail, new OrderDetail());
         entity.OrderId = orderId;
@@ -130,6 +159,7 @@ public class OrdersController : BaseController
     [HttpGet("{orderId}/order-details/{flowerId}")]
     public async Task<IActionResult> GetOrderDetails(int orderId, int flowerId)
     {
+        await ValidateOrderOfCustomer(orderId);
         var detail = await _oderDetailRepository.FirstOrDefaultAsync(
             c => c.OrderId == orderId && c.FlowerBouquetId == flowerId, new string[] { nameof(FlowerBouquet) }
             );
@@ -141,8 +171,9 @@ public class OrdersController : BaseController
     }
 
     [HttpPut("{orderId}/order-details/{flowerId}")]
-    public async Task<IActionResult> GetOrderDetails(int orderId, int flowerId, UpdateOrderDetailRequest req)
+    public async Task<IActionResult> UpdateOrderDetails(int orderId, int flowerId, UpdateOrderDetailRequest req)
     {
+        await ValidateOrderOfCustomer(orderId);
         var detail = await _oderDetailRepository.FoundOrThrow(c => c.OrderId == orderId && c.FlowerBouquetId == flowerId, new NotFoundException());
         var entity = Mapper.Map(req, detail);
         await _oderDetailRepository.UpdateAsync(entity);
@@ -152,6 +183,7 @@ public class OrdersController : BaseController
     [HttpDelete("{orderId}/order-details/{flowerId}")]
     public async Task<IActionResult> DeleteOrderDetail(int orderId, int flowerId)
     {
+        await ValidateOrderOfCustomer(orderId);
         var detail = await _oderDetailRepository.FoundOrThrow(c => c.OrderId == orderId && c.FlowerBouquetId == flowerId, new NotFoundException());
         await _oderDetailRepository.DeleteAsync(detail);
         return StatusCode(StatusCodes.Status204NoContent);
