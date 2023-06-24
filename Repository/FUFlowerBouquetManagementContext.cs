@@ -26,6 +26,24 @@ namespace Repository {
         
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
+            modelBuilder
+                .Entity<Order>()
+                .HasOne(e => e.Customer)
+                .WithMany(e => e.Orders)
+                .OnDelete(DeleteBehavior.SetNull);
+            
+            modelBuilder
+                .Entity<OrderDetail>()
+                .HasOne(e => e.Order)
+                .WithMany(e => e.OrderDetails)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder
+                .Entity<OrderDetail>()
+                .HasOne(e => e.FlowerBouquet)
+                .WithMany(e => e.OrderDetails)
+                .OnDelete(DeleteBehavior.Cascade);
+            
             base.OnModelCreating(modelBuilder);
         }
     }

@@ -6,17 +6,12 @@ namespace Api.Models;
 
 public class UpdateCustomerRequest : IMapTo<AspNetUser>
 {
-    [MaxLength(180)]
-    public string? CustomerName { get; set; }
-
-    [MaxLength(15)]
-    public string? City { get; set; }
-
-    [MaxLength(15)]
-    public string? Country { get; set; }
-
-    [MaxLength(30)]
     public string? Password { get; set; }
-
-    public DateTime? Birthday { get; set; }
+    
+    [Phone]
+    public string? Phonenumber { get; set; }
+    
+    public string? FirstName { get; set; }
+    
+    public string? LastName { get; set; }
 }

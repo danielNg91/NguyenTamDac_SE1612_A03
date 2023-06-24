@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Repository;
 
@@ -11,9 +12,11 @@ using Repository;
 namespace Repository.Migrations
 {
     [DbContext(typeof(FUFlowerBouquetManagementContext))]
-    partial class FUFlowerBouquetManagementContextModelSnapshot : ModelSnapshot
+    [Migration("20230624091606_ConfigOndeleteUserOrder")]
+    partial class ConfigOndeleteUserOrder
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -112,7 +115,7 @@ namespace Repository.Migrations
 
                     b.HasKey("CategoryId");
 
-                    b.ToTable("Categories", (string)null);
+                    b.ToTable("Categories");
                 });
 
             modelBuilder.Entity("BusinessObjects.FlowerBouquet", b =>
@@ -150,7 +153,7 @@ namespace Repository.Migrations
 
                     b.HasIndex("SupplierId");
 
-                    b.ToTable("FlowerBouquets", (string)null);
+                    b.ToTable("FlowerBouquets");
                 });
 
             modelBuilder.Entity("BusinessObjects.Order", b =>
@@ -183,7 +186,7 @@ namespace Repository.Migrations
 
                     b.HasIndex("CustomerId");
 
-                    b.ToTable("Orders", (string)null);
+                    b.ToTable("Orders");
                 });
 
             modelBuilder.Entity("BusinessObjects.OrderDetail", b =>
@@ -209,7 +212,7 @@ namespace Repository.Migrations
 
                     b.HasIndex("FlowerBouquetId");
 
-                    b.ToTable("OrderDetails", (string)null);
+                    b.ToTable("OrderDetails");
                 });
 
             modelBuilder.Entity("BusinessObjects.Supplier", b =>
@@ -231,7 +234,7 @@ namespace Repository.Migrations
 
                     b.HasKey("SupplierId");
 
-                    b.ToTable("Suppliers", (string)null);
+                    b.ToTable("Suppliers");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole<int>", b =>
